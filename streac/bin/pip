@@ -1,0 +1,10 @@
+#!/bin/sh
+'''exec' "/home/beannoot/Documents/Summer Research 26/SSR26 STReaC 2.0/streac/bin/python3.11" "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pip._internal.cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
