@@ -13,6 +13,7 @@ class spike_train:
         self.spike_times : np.ndarray = np.empty(0) #spike times in train, normalized with start time of 0
         self.seperate_spike_times()
 
+        #test
         print("Index :" + str(self.stim_index) + ", Stim Time: " + str(self.stim_time) + ", Baseline Flag : " + str(self.baseline_flag) + ", Num Spikes:" + str(self.spike_times.shape))
         print(self.spike_times)
     
@@ -23,10 +24,10 @@ class spike_train:
         start_time = self.stim_time #starting time bound of spike train, inclsive
         end_time = None #ending time bound of spike train, non-inclusive
         
-        if self.baseline_flag:
+        if self.baseline_flag: #seperates time bound for baseline vs. non baseline
             start_time = self.stim_time - self.time
 
-        end_time = start_time + self.time
+        end_time = start_time + self.time #define end time
 
-        self.spike_times = np.array([t for t in full_times if start_time <= t < end_time])
-        self.spike_times = np.subtract(self.spike_times, start_time)
+        self.spike_times = np.array([t for t in full_times if start_time <= t < end_time]) #list comprehension creates new list with only times in bound
+        self.spike_times = np.subtract(self.spike_times, start_time) #normalize to start at 0
