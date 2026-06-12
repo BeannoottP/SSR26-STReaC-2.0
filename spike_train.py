@@ -2,6 +2,9 @@ import neruon as nrn
 import numpy as np
 
 class spike_train:
+    '''
+    this is a class definintion i need to 
+    '''
     def __init__(self, neuron, stimulation_index, baseline_flag):
         #TODO parameters around time sampling
         self.time = 1.0 #total length of spike train in seconds
