@@ -1,5 +1,6 @@
 import neruon as nrn
 import numpy as np
+import poisson_surprise as ps_sp
 
 class spike_train:
     '''
@@ -19,6 +20,12 @@ class spike_train:
         #test
         print("Index :" + str(self.stim_index) + ", Stim Time: " + str(self.stim_time) + ", Baseline Flag : " + str(self.baseline_flag) + ", Num Spikes:" + str(self.spike_times.shape))
         print(self.spike_times)
+        #calculate burst and burst properties
+        self.bursts = ps_sp.run_poisson_surprise(self.spike_times)
+        self.n_bursts, self.burst_firing_rate, self.burst_start_times, self.burst_durations, \
+            self.burst_spikes, self.inter_burst_intervals = ps_sp.burst_properties(
+                                                            self.bursts)
+        
     
 
 

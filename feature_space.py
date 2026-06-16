@@ -19,7 +19,16 @@ class feature_space:
         self.add_feature(ft.fr(self.spike_train))
         self.add_feature(ft.isi(self.spike_train))
         self.add_feature(ft.cv(self.spike_train))
-
+        self.add_feature(ft.bursts_per_second(self.spike_train))
+        self.add_feature(ft.burst_fr(self.spike_train))
+        self.add_feature(ft.percent_time_burst(self.spike_train))
+        self.add_feature(ft.percent_spike_bursting(self.spike_train))
+        self.add_feature(ft.percent_spike_bursting(self.spike_train))
+        self.add_feature(ft.mean_burst_duration(self.spike_train))
+        self.add_feature(ft.mean_ibi(self.spike_train))
+        self.add_feature(ft.non_bursting_fr(self.spike_train))
+        self.add_feature(ft.bursting_fr_increase(self.spike_train))
+    
     def __str__(self) -> str:
         string = ""
         for feature in self.feature_list:
