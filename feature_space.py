@@ -23,7 +23,6 @@ class feature_space:
         self.add_feature(ft.burst_fr(self.spike_train))
         self.add_feature(ft.percent_time_burst(self.spike_train))
         self.add_feature(ft.percent_spike_bursting(self.spike_train))
-        self.add_feature(ft.percent_spike_bursting(self.spike_train))
         self.add_feature(ft.mean_burst_duration(self.spike_train))
         self.add_feature(ft.mean_ibi(self.spike_train))
         self.add_feature(ft.non_bursting_fr(self.spike_train))
