@@ -12,18 +12,27 @@ class neuron:
         self.meta_data : dict = {} # dictionary of metadata
 
         self.gather_data() #reads src files and saves to spike_times, stimulus_times, stimulus_count, and meta_data
+        
+        '''
         #test
         print(self.spike_times)
         print(self.stimulus_times)
         print(self.stimulus_count)
         print(self.meta_data)
+        '''
 
         self.baseline_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
         self.stimulation_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
 
         self.generate_spike_trains()
-        print(self.baseline_spike_trains.shape)
-        print(self.stimulation_spike_trains.shape)
+        #print(self.baseline_spike_trains.shape)
+        #print(self.stimulation_spike_trains.shape)
+
+        #generate feature spaces
+        self.pre_stimulation_spike_train.evaluate_feature_space()
+        for i in range(self.stimulus_count):
+            self.baseline_spike_trains[i].evaluate_feature_space()
+            self.stimulation_spike_trains[i].evaluate_feature_space()
 
 
     def gather_data(self):
@@ -59,3 +68,6 @@ class neuron:
         for i in range(self.stimulus_count):
             self.baseline_spike_trains[i] = st.spike_train(self, i, True)
             self.stimulation_spike_trains[i] = st.spike_train(self, i, False)
+
+        pre_stimulation_spikes = np.array([t for t in self.spike_times if 0.0 <= t < self.stimulus_times[0]])
+        self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times= pre_stimulation_spikes)

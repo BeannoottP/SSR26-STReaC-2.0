@@ -27,6 +27,12 @@ class feature_space:
         self.add_feature(ft.mean_ibi(self.spike_train))
         self.add_feature(ft.non_bursting_fr(self.spike_train))
         self.add_feature(ft.bursting_fr_increase(self.spike_train))
+
+    def get_feature(self, feature):
+        for ft in self.feature_list:
+            if type(ft) is feature:
+                return ft
+        return None
     
     def __str__(self) -> str:
         string = ""

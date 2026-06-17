@@ -3,7 +3,6 @@ import spike_train as st
 import numpy as np
 
 class feature(abc.ABC):
-
     def __init__(self, train, name):
         self.spike_train : st.spike_train = train #spike train of which feature is of
         self.value = None #features value once evaluated
