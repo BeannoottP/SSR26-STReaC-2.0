@@ -15,20 +15,10 @@ class neuron:
 
         self.gather_data() #reads src files and saves to spike_times, stimulus_times, stimulus_count, and meta_data
         
-        '''
-        #test
-        print(self.spike_times)
-        print(self.stimulus_times)
-        print(self.stimulus_count)
-        print(self.meta_data)
-        '''
-
         self.baseline_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
         self.stimulation_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
 
         self.generate_spike_trains()
-        #print(self.baseline_spike_trains.shape)
-        #print(self.stimulation_spike_trains.shape)
 
         #generate feature spaces
         self.pre_stimulation_spike_train.evaluate_feature_space()
@@ -89,7 +79,7 @@ class neuron:
     def generate_trial_average_difference(self, difference_method):
         difference_space_list = [st.generate_difference_space(difference_method) for st in self.stimulation_spike_trains]
         self.trial_average_difference = ft_sp.average_features(difference_space_list)        
-            
+    
 
 
 

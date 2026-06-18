@@ -1,5 +1,3 @@
-from typing import Any
-
 import neruon as nrn
 import numpy as np
 import poisson_surprise as ps_sp
