@@ -1,10 +1,12 @@
 import numpy as np
 import logging
 import spike_train as st
+import feature_space as ft_sp
+import feature as ft
 
 class neuron:
     def __init__(self, data_path):
-        self.src : str = data_path #path to folder containing 
+        self.src : str = data_path #path to folder containing neural data
         
         self.spike_times : np.ndarray = np.empty(0) #Full array of spike times
         self.stimulus_times : np.ndarray = np.empty(0) # full array of stimulus start times
@@ -33,6 +35,8 @@ class neuron:
         for i in range(self.stimulus_count):
             self.baseline_spike_trains[i].evaluate_feature_space()
             self.stimulation_spike_trains[i].evaluate_feature_space()
+
+
 
 
     def gather_data(self):
@@ -65,9 +69,28 @@ class neuron:
                 )  # Store evaluated data
 
     def generate_spike_trains(self):
-        for i in range(self.stimulus_count):
+        '''
+        generates three sets of spike trains
+        Baseline Spike trains represent the time directly before stimulation
+        Stimulation Spike trains represent the time directly after stimulation
+        Pre_stimulation_spike_train is a single spike train with spike time 0 -> time first stimulation
+        '''
+        for i in range(self.stimulus_count): #iterates through stimulation times and generates spike trains for 
             self.baseline_spike_trains[i] = st.spike_train(self, i, True)
             self.stimulation_spike_trains[i] = st.spike_train(self, i, False)
 
         pre_stimulation_spikes = np.array([t for t in self.spike_times if 0.0 <= t < self.stimulus_times[0]])
         self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times= pre_stimulation_spikes)
+
+    def generate_trial_average_baseline(self):
+        feature_space_list = [st.feature_space for st in self.baseline_spike_trains]
+        self.trial_average_baseline = ft_sp.average_features(feature_space_list)
+
+    def generate_trial_average_difference(self, difference_method):
+        difference_space_list = [st.generate_difference_space(difference_method) for st in self.stimulation_spike_trains]
+        self.trial_average_difference = ft_sp.average_features(difference_space_list)        
+            
+
+
+
+

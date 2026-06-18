@@ -66,3 +66,8 @@ class spike_train:
 
     def get_feature(self, feature):
         return self.feature_space.get_feature(feature)
+    
+    def generate_difference_space(self, difference_method):
+        self.difference_space = ft_sp.calculate_difference( \
+            difference_method, self.feature_space, self.neuron.trial_average_baseline)
+        return self.difference_space

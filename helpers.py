@@ -16,16 +16,16 @@ def plot_bursts(neuron):
     plt.eventplot(burstslist, colors="red")
     plt.show()
 
-def plot_histogram_from_feature(spike_trains, feature):
+def plot_histogram_from_feature(spike_trains, feature, color = "blue", range = (0,100)):
     values = []
     for train in spike_trains:
         values.append(train.get_feature(feature).value)
     ref_ft = spike_trains[0].get_feature(feature)
 
     plt.figure()
-    plt.hist(values, bins=20, range=(0,120), edgecolor= "black")
+    plt.hist(values, bins=20, range=range, edgecolor= "black", color= color)
     plt.xlabel(ref_ft.name)
-    plt.ylabel("Count")
+    plt.ylabel("Probability")
     plt.title(ref_ft.name + " Histogram")
     plt.show(block=False)
     

@@ -1,11 +1,17 @@
 import feature as ft
+import numpy as np
 
 
 class feature_space:
     
-    def __init__(self, spike_train):
+    def __init__(self, spike_train = None, feature_space = None):
         self.feature_list = []
-        self.spike_train = spike_train
+        if spike_train != None:
+            self.spike_train = spike_train
+        if feature_space != None:
+            for feature in feature_space.feature_list:
+                ft_type = type(feature)
+                self.feature_list.append(ft_type(None))
 
 
     def add_feature(self, feature):
@@ -34,8 +40,37 @@ class feature_space:
                 return ft
         return None
     
+    def set_feature(self, feature, value):
+        for ft in self.feature_list:
+            if type(ft) is feature:
+                ft.value = value
+    
     def __str__(self) -> str:
         string = ""
         for feature in self.feature_list:
             string += str(feature) + "\n"
         return string
+    
+
+def average_features(feature_space_list):
+    average_space = \
+        feature_space(feature_space=feature_space_list[0]) #creates empty feature space of same shape
+    
+    for i in range(len(average_space.feature_list)): #iterate through ft indexs
+        ft_type = type(average_space.feature_list[i]) #find feature type
+        mean = np.mean([feature_space.get_feature(ft_type).value for feature_space in feature_space_list]) #calculate mean of all feature_spaces
+        average_space.set_feature(ft_type, mean) #set value in trial_average
+
+    return average_space
+
+
+def calculate_difference(difference_method, feature_space_a, feature_space_b):
+    difference_space = feature_space(feature_space=feature_space_a) #create empty feature space of same shape
+    
+    for i in range(len(difference_space.feature_list)): #iterate through ft indexs
+        ft_type = type(difference_space.feature_list[i]) #find feature type
+        difference = difference_method(feature_space_a.get_feature(ft_type), feature_space_b.get_feature(ft_type))
+        difference_space.set_feature(ft_type, difference)
+
+    return difference_space
+
