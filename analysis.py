@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import zscore
+from sklearn.decomposition import PCA
 
 def _sanitize_col(name: str) -> str:
 	'''
@@ -38,7 +39,7 @@ def neurons_to_dataframe(neuron_list):
 		# trial-averaged baseline
 		_dump_space(neuron.trial_average_baseline, "baseline")
 		# trial-averaged difference
-		_dump_space(neuron.trial_average_difference, "diff")
+		_dump_space(neuron.averaged_difference, "diff")
 
 		rows.append(row)
 
@@ -52,6 +53,21 @@ def z_score_difference_cols(neuron_df):
 	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
 	#relabel cols
 	z_score_df.columns = [f"z_score_{name}" for name in col_names]
-	
 	neuron_df[z_score_df.columns] = z_score_df
+	
+def remove_extraneous(neuron_df, z_score_threshold = 3.0):
+	'''
+	drops all rows with z_scores outside of z_score_threshold, inplace
+	'''
+	col_names = neuron_df.filter(regex = ("^z_score_.*")).columns.to_list()
+	mask = (neuron_df[col_names].abs() <= z_score_threshold).all(axis=1)
+	neuron_df.drop(index = neuron_df.index[~mask], inplace = True)
+	
+def apply_PCA(neuron_df, num_features, regex = "^z_score_.*"):
+	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
+	pca = PCA(n_components=num_features)
+	reduced = pca.fit_transform(neuron_df[col_names])
+	reduced_names = ["PC_1st", "PC_2nd", "PC_3rd"]
+	neuron_df[reduced_names]= reduced
+	return pca
 	

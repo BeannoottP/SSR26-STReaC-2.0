@@ -26,6 +26,9 @@ class neuron:
             self.baseline_spike_trains[i].evaluate_feature_space()
             self.stimulation_spike_trains[i].evaluate_feature_space()
 
+        self.trial_average_baseline = None
+        self.averaged_difference = None
+
 
 
 
@@ -73,13 +76,26 @@ class neuron:
         self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times= pre_stimulation_spikes)
 
     def generate_trial_average_baseline(self):
+        '''
+        generates averaged feature space of all baseline spike trains
+        '''
         feature_space_list = [st.feature_space for st in self.baseline_spike_trains]
         self.trial_average_baseline = ft_sp.average_features(feature_space_list)
 
     def generate_trial_average_difference(self, difference_method):
-        difference_space_list = [st.generate_difference_space(difference_method) for st in self.stimulation_spike_trains]
-        self.trial_average_difference = ft_sp.average_features(difference_space_list)        
-    
+        '''
+        generates difference space comparing all stimulation trials against averaged baseline feature space
+        '''
+        difference_space_list = [st.generate_difference_space_against_average(difference_method) for st in self.stimulation_spike_trains]
+        self.averaged_difference = ft_sp.average_features(difference_space_list)
+
+    def generate_per_trial_difference(self, difference_method):
+        '''
+        generates difference space comparing all stimuation trials against their baseline features
+        '''
+        difference_space_list = [st.generate_difference_space_against_trial(difference_method) for st in self.stimulation_spike_trains]
+        self.averaged_difference = ft_sp.average_features(difference_space_list)
+
 
 
 
