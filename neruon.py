@@ -5,8 +5,9 @@ import feature_space as ft_sp
 import feature as ft
 
 class neuron:
-    def __init__(self, data_path):
+    def __init__(self, data_path, time = 1.0):
         self.src : str = data_path #path to folder containing neural data
+        self.time = time
         
         self.spike_times : np.ndarray = np.empty(0) #Full array of spike times
         self.stimulus_times : np.ndarray = np.empty(0) # full array of stimulus start times
@@ -69,8 +70,8 @@ class neuron:
         Pre_stimulation_spike_train is a single spike train with spike time 0 -> time first stimulation
         '''
         for i in range(self.stimulus_count): #iterates through stimulation times and generates spike trains for 
-            self.baseline_spike_trains[i] = st.spike_train(self, i, True)
-            self.stimulation_spike_trains[i] = st.spike_train(self, i, False)
+            self.baseline_spike_trains[i] = st.spike_train(self, i, True, time = self.time)
+            self.stimulation_spike_trains[i] = st.spike_train(self, i, False, time = self.time)
 
         pre_stimulation_spikes = np.array([t for t in self.spike_times if 0.0 <= t < self.stimulus_times[0]])
         self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times= pre_stimulation_spikes)

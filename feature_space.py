@@ -23,7 +23,6 @@ class feature_space:
 
     def load_default_features(self):
         self.add_feature(ft.fr(self.spike_train))
-        self.add_feature(ft.isi(self.spike_train))
         self.add_feature(ft.cv(self.spike_train))
         self.add_feature(ft.bursts_per_second(self.spike_train))
         self.add_feature(ft.burst_fr(self.spike_train))

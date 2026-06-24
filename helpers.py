@@ -4,6 +4,9 @@ import feature as ft
 import difference_methods as df
 import analysis
 import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.colors as mcolors
 
 def plot_bursts(neuron):
     spikeslist = []
@@ -42,10 +45,26 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     
     h_neuron_df = analysis.neurons_to_dataframe(healthy_neuron_list)
     d_neuron_df = analysis.neurons_to_dataframe(diseased_neuron_list)
-    h_neuron_df["color"] = color
-    d_neuron_df["color"] = "blue"
+
+
+
+    h_neuron_df["marker"] = "^"
+    d_neuron_df["marker"] = "o"
     
     neuron_df = pd.concat([h_neuron_df, d_neuron_df])
+
+    processed_df = pd.concat([
+                pd.read_csv("data/Original/d1_msns/processed_data/all_data.csv"),
+                pd.read_csv("data/Original/gpe_pv/processed_data/all_data.csv")])
+    
+    neuron_df = neuron_df.merge(processed_df[["Recording", "neural_response_val"]], on="Recording", how="left")
+    #{'complete inhibition': 0, 'adapting inhibition': 1, 'partial inhibition': 2, 'no effect': 3, 'excitation': 4, 'biphasic IE': 5, 'biphasic EI': 6}
+    color_list = ["blue", "red", "green", "yellow", "orange", "cyan", "black"]
+    color_map = dict(enumerate(color_list))
+
+    neuron_df["color"] = neuron_df["neural_response_val"].map(color_map)
+    neuron_df.to_csv("example_data/test.csv", index=False)
+
 
     if z_score:
         regex = "^z_score_.*"
@@ -55,19 +74,64 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
         regex =  "^diff_.*"
     
     pca = analysis.apply_PCA(neuron_df, 3, regex=regex)
-    fig = plt.figure(figsize=(12,6), constrained_layout= True)
-    gs = fig.add_gridspec(1,2, width_ratios=[4,1])
+    neuron_df = neuron_df.dropna()
+
+    fig = plt.figure(figsize=(18,6), constrained_layout= True)
+    gs = fig.add_gridspec(1,3, width_ratios=[6,2,4])
     
     ax_pca = fig.add_subplot(gs[0], projection='3d')
-    ax_pca.scatter(xs = neuron_df["PC_1st"].tolist(), ys = neuron_df["PC_2nd"].tolist(), zs = neuron_df["PC_3rd"].tolist(), marker="^", color = neuron_df["color"]) # type: ignore
+    #ax_pca.scatter(xs = neuron_df["PC_1st"].tolist(), ys = neuron_df["PC_2nd"].tolist(), zs = neuron_df["PC_3rd"].tolist(), marker=neuron_df["marker"].to_list(), c= neuron_df["color"].to_list()) # type: ignore
+    for marker, group in neuron_df.groupby("marker"):
+        ax_pca.scatter(
+            group["PC_1st"],
+            group["PC_2nd"],
+            group["PC_3rd"], #type: ignore
+            marker=marker,
+            c=group["color"]
+        ) 
     ax_pca.set_title("PCA Features")
+    ax_pca.set_xlabel("PCA1")
+    ax_pca.set_ylabel("PCA2")
+    ax_pca.set_zlabel("PCA3")
     ax_pca.set_box_aspect((1, 1, 1))
 
     ax_scree = fig.add_subplot(gs[1])
-    ax_scree.bar(range(1, len(pca.explained_variance_) + 1), pca.explained_variance_, color = color)
+    ax_scree.bar([f'PCA{x}' for x in range(1,pca.n_components_+1)], pca.explained_variance_ratio_, color = color)
+    ax_scree.plot([f'PCA{x}' for x in range(1,pca.n_components_+1)], np.cumsum(pca.explained_variance_ratio_), color = color)
     ax_scree.set_xlabel("PCA Feature")
-    ax_scree.set_ylabel("Explained Varience")
+    ax_scree.set_ylabel("Explained Varience (%)")
     ax_scree.set_title("Varience Explained Bar Chart")
+    ax_scree.grid()
+
+    ax_loadings = fig.add_subplot(gs[2])
+    col_names = neuron_df.filter(regex=regex).columns.to_list()
+    feature_names = []
+    for name in col_names:
+        if name.startswith("z_score_diff_"):
+            feature_names.append(name[len("z_score_diff_"):])
+        elif name.startswith("diff_"):
+            feature_names.append(name[len("diff_"):])
+        else:
+            feature_names.append(name)
+
+    max_label_len = 21
+    xticklabels = [
+        fname if len(fname) <= max_label_len else f"{fname[:max_label_len-3]}..."
+        for fname in feature_names
+    ]
+    sns.heatmap(
+        pca.components_,
+        cmap='coolwarm',
+        vmax= 0.75,
+        vmin = -0.75,
+        yticklabels=[f'PCA{x}' for x in range(1, pca.n_components_ + 1)],
+        xticklabels=xticklabels,
+        linewidths=1,
+        annot=True,
+        fmt=',.2f',
+        cbar_kws={"shrink": 0.8, "orientation": 'vertical'},
+        ax=ax_loadings
+    )
 
     fig.suptitle(title)
     fig.savefig("figures/{title}".format(title=title))
