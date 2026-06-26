@@ -10,18 +10,29 @@ import seaborn as sns
 import matplotlib.colors as mcolors
 
 def plot_bursts(neuron):
+    plt.figure(figsize=(12,6))
     spikeslist = []
     burstslist = []
     for trial_num in range(5):
-        spikeslist.append(neuron.baseline_spike_trains[trial_num].spike_times)
+        spikeslist.append(neuron.baseline_spike_trains[trial_num].spike_times.tolist())
+        #print(spikeslist)
+        spikeslist[trial_num].extend((neuron.stimulation_spike_trains[trial_num].spike_times + 1.0).tolist())
+        #print(spikeslist)
         bursttimes = []
         for burst in neuron.baseline_spike_trains[trial_num].bursts:
             bursttimes.extend(burst[1])
+        for burst in neuron.stimulation_spike_trains[trial_num].bursts:
+            bursttimes.extend(burst[1] + 1.0)
+        
         burstslist.append(bursttimes)
 
     plt.eventplot(spikeslist)
     plt.eventplot(burstslist, colors="red")
-    plt.show()
+    plt.axvline(1.0)
+    plt.title("Spike Times")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Trial")
+    plt.show(block = False)
 
 def plot_histogram_from_feature(spike_trains, feature, color = "blue", range = (0,100)):
     values = []
@@ -45,15 +56,14 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
             neuron.generate_trial_average_difference(difference_method)
     
     h_neuron_df = analysis.neurons_to_dataframe(healthy_neuron_list)
-    print(len(h_neuron_df))
-    d_neuron_df = analysis.neurons_to_dataframe(diseased_neuron_list)
+    #d_neuron_df = analysis.neurons_to_dataframe(diseased_neuron_list)
 
 
 
     h_neuron_df["marker"] = "^"
-    d_neuron_df["marker"] = "o"
+    #d_neuron_df["marker"] = "o"
     
-    neuron_df = pd.concat([h_neuron_df, d_neuron_df])
+    #neuron_df = pd.concat([h_neuron_df, d_neuron_df])
     neuron_df = h_neuron_df
 
     processed_df = pd.concat([
@@ -69,7 +79,6 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     data_dir_list = ["/".join(x.split("/")[-4:]) for x in data_dir_list]
     processed_df["data_dir"] = data_dir_list
     neuron_df = neuron_df.merge(processed_df[["data_dir", "neural_response_val"]], on="data_dir", how="left")
-    print(len(neuron_df))
     #{'complete inhibition': 0, 'adapting inhibition': 1, 'partial inhibition': 2, 'no effect': 3, 'excitation': 4, 'biphasic IE': 5, 'biphasic EI': 6}
     color_list = ["blue", "red", "green", "yellow", "orange", "cyan", "black"]
     color_map = dict(enumerate(color_list))
@@ -93,7 +102,7 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     neuron_df = neuron_df.dropna()
 
     fig = plt.figure(figsize=(18,12), constrained_layout= True)
-    gs = fig.add_gridspec(2,3, width_ratios=[6,2,4])
+    gs = fig.add_gridspec(2,3, width_ratios=[6,6,2])
     
     ax_pca = fig.add_subplot(gs[0], projection='3d')
     #ax_pca.scatter(xs = neuron_df["PC_1st"].tolist(), ys = neuron_df["PC_2nd"].tolist(), zs = neuron_df["PC_3rd"].tolist(), marker=neuron_df["marker"].to_list(), c= neuron_df["color"].to_list()) # type: ignore
@@ -111,7 +120,7 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     ax_pca.set_zlabel("PCA3")
     ax_pca.set_box_aspect((1, 1, 1))
 
-    ax_scree = fig.add_subplot(gs[1])
+    ax_scree = fig.add_subplot(gs[2])
     ax_scree.bar([f'PCA{x}' for x in range(1,pca.n_components_+1)], pca.explained_variance_ratio_, color = color)
     ax_scree.plot([f'PCA{x}' for x in range(1,pca.n_components_+1)], np.cumsum(pca.explained_variance_ratio_), color = color)
     ax_scree.set_xlabel("PCA Feature")
@@ -119,7 +128,7 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     ax_scree.set_title("Varience Explained Bar Chart")
     ax_scree.grid()
 
-    ax_loadings = fig.add_subplot(gs[2])
+    ax_loadings = fig.add_subplot(gs[1])
     col_names = neuron_df.filter(regex=regex).columns.to_list()
     feature_names = []
     for name in col_names:
@@ -149,25 +158,42 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
         ax=ax_loadings
     )
 
-    ax_elbow = fig.add_subplot(gs[4])
-    distortions = analysis.generate_elbow_distortion_vals(neuron_df)
+    ax_elbow = fig.add_subplot(gs[5])
+    distortions = analysis.generate_elbow_distortion_vals(neuron_df, regex="^PC_.*")
     ax_elbow.plot(range(1,10), distortions, 'bx-')
     ax_elbow.set_xlabel('Number of Clusters (k)')
     ax_elbow.set_ylabel('Distortion')
-    ax_elbow.set_title('The Elbow Method using Distortion')
+    ax_elbow.set_title('Elbow Graph')
     
-    ax_clusters = fig.add_subplot(gs[3], projection="3d")
-    analysis.apply_clusters(neuron_df, 4)
+    ax_clusters_PC = fig.add_subplot(gs[3], projection="3d")
+    analysis.apply_clusters(neuron_df, 5, regex="^PC_.*")
 
     neuron_df["color"] = neuron_df["cluster"].map(color_map)
     for marker, group in neuron_df.groupby("marker"):
-        ax_clusters.scatter(
+        ax_clusters_PC.scatter(
             group["PC_1st"],
             group["PC_2nd"],
             group["PC_3rd"], #type: ignore
             marker=marker,
             c=group["color"]
-        ) 
+        )
+    ax_clusters_PC.set_title("PC Clusters")
+
+    ax_clusters_z_scores = fig.add_subplot(gs[4], projection="3d")
+    analysis.apply_clusters(neuron_df, 5)
+
+    neuron_df["color"] = neuron_df["cluster"].map(color_map)
+    for marker, group in neuron_df.groupby("marker"):
+        ax_clusters_z_scores.scatter(
+            group["PC_1st"],
+            group["PC_2nd"],
+            group["PC_3rd"], #type: ignore
+            marker=marker,
+            c=group["color"]
+        )
+    ax_clusters_z_scores.set_title("Z Score Clusters")
+
+
 
 
     fig.suptitle(title)

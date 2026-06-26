@@ -52,7 +52,6 @@ def neurons_to_dataframe(neuron_list):
 
 def z_score_difference_cols(neuron_df):
 	col_names = neuron_df.filter(regex=("^diff_.*")).columns.to_list() #filter column list for only columns labeled diff_
-	print(col_names)
 	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
 	#relabel cols
 	z_score_df.columns = [f"z_score_{name}" for name in col_names]
@@ -60,7 +59,6 @@ def z_score_difference_cols(neuron_df):
 	
 def z_score_baseline_cols(neuron_df):
 	col_names = neuron_df.filter(regex=("^baseline_.*")).columns.to_list() #filter column list for only columns labeled diff_
-	print(col_names)
 	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
 	#relabel cols
 	z_score_df.columns = [f"filtering_z_scores_{name}" for name in col_names]
@@ -72,9 +70,7 @@ def remove_extraneous(neuron_df, z_score_threshold = 3.0, regex = "^z_score_.*")
 	'''
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
 	mask = (neuron_df[col_names].abs() <= z_score_threshold).all(axis=1)
-	#print(len(neuron_df))
 	neuron_df.drop(index = neuron_df.index[~mask], inplace = True)
-	#print(len(neuron_df))
 	
 def apply_PCA(neuron_df, num_features, regex = "^z_score_.*"):
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
