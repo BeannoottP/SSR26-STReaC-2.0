@@ -98,7 +98,7 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     else:
         regex =  "^diff_.*"
     
-    pca = analysis.apply_PCA(neuron_df, 3, regex=regex)
+    pca = analysis.apply_PCA(neuron_df, 10, regex=regex)
     neuron_df = neuron_df.dropna()
 
     fig = plt.figure(figsize=(18,12), constrained_layout= True)
@@ -159,14 +159,14 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     )
 
     ax_elbow = fig.add_subplot(gs[5])
-    distortions = analysis.generate_elbow_distortion_vals(neuron_df, regex="^PC_.*")
+    distortions = analysis.generate_elbow_distortion_vals(neuron_df, regex="^PC_[123].*")
     ax_elbow.plot(range(1,10), distortions, 'bx-')
     ax_elbow.set_xlabel('Number of Clusters (k)')
     ax_elbow.set_ylabel('Distortion')
     ax_elbow.set_title('Elbow Graph')
     
     ax_clusters_PC = fig.add_subplot(gs[3], projection="3d")
-    analysis.apply_clusters(neuron_df, 5, regex="^PC_.*")
+    analysis.apply_clusters(neuron_df, 5, regex="^PC_[123].*")
 
     neuron_df["color"] = neuron_df["cluster"].map(color_map)
     for marker, group in neuron_df.groupby("marker"):

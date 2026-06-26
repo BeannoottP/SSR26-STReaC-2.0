@@ -76,7 +76,7 @@ def apply_PCA(neuron_df, num_features, regex = "^z_score_.*"):
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
 	pca = PCA(n_components=num_features)
 	reduced = pca.fit_transform(neuron_df[col_names])
-	reduced_names = ["PC_1st", "PC_2nd", "PC_3rd"]
+	reduced_names = ["PC_1st", "PC_2nd", "PC_3rd", "PC_4th", "PC_5th", "PC_6th", "PC_7th", "PC_8th", "PC_9th", "PC_10th"]
 	neuron_df[reduced_names]= reduced
 	return pca
 
