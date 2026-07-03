@@ -54,9 +54,9 @@ class cv(feature):
         super().__init__(train, "CV")
     
     def evaluate(self):
-                #edge case for 0/1 spikes
+        #edge case for 0/1 spikes
         trainLen = self.spike_train.spike_times.size
-        if trainLen <= 1:
+        if trainLen <= 2:
             self.value = 0.0
             return
 

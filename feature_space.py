@@ -5,6 +5,11 @@ import numpy as np
 class feature_space:
     
     def __init__(self, spike_train = None, feature_space = None):
+        '''
+        Overloaded:
+        __init__(self, spike_train): Creates a feature space to be evaluated with the data in spike_train, defaults to no features
+        __init__(self, feature_space): Creates a feature space to be manually set, with features in shape of passed feature space
+        '''
         self.feature_list = []
         if spike_train != None:
             self.spike_train = spike_train
@@ -15,6 +20,9 @@ class feature_space:
 
 
     def add_feature(self, feature):
+        '''
+        adds a feature of 
+        '''
         self.feature_list.append(feature)
 
     def evaluate_features(self):
@@ -52,6 +60,10 @@ class feature_space:
     
 
 def average_features(feature_space_list):
+    '''
+    returns a feature space with averaged features,
+    requires shape of all feature spaces in feature space list to be same
+    '''
     average_space = \
         feature_space(feature_space=feature_space_list[0]) #creates empty feature space of same shape
     
@@ -64,6 +76,9 @@ def average_features(feature_space_list):
 
 
 def calculate_difference(difference_method, feature_space_a, feature_space_b):
+    '''
+    returns a feature space with difference between feature space a and freature space b using provided difference method
+    '''
     difference_space = feature_space(feature_space=feature_space_a) #create empty feature space of same shape
     
     for i in range(len(difference_space.feature_list)): #iterate through ft indexs

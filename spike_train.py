@@ -1,3 +1,7 @@
+'''
+
+'''
+
 import neruon as nrn
 import numpy as np
 import poisson_surprise as ps_sp
@@ -11,29 +15,23 @@ class spike_train:
     def __init__(self, neuron = None, stimulation_index = 0, baseline_flag = True, time = 1.0, spike_times = None):
         '''
         Overloaded: time, spike_times
-                    neuron, stimulation_index, baseline_Flag, time
+                    neuron, stimulation_index, baseline_flag, time
         
         '''
-        #TODO parameters around time sampling
+        #TODO parameters around time sampling: Done?
         self.time = time #total length of spike train in seconds
         
-        if spike_times is None and neuron is not None: #seperates out everything by self
+        if spike_times is None and neuron is not None: #seperates out everything by stimulation index and neuron spike train
             self.neuron : nrn.neuron = neuron #parent neuron
             self.stim_index : int = stimulation_index #index in neuron.stimulation_times at which this neuron 
-            self.stim_time : float = self.neuron.stimulus_times[self.stim_index] #time of stimulation
+            self.stim_time : float = self.neuron.stimulus_times[self.stim_index]  #time of stimulation # type: ignore
             self.baseline_flag : bool = baseline_flag #true means prestimulation, false means during/post stim
             self.spike_times : np.ndarray = np.empty(0) #spike times in train, normalized with start time of 0
             self.seperate_spike_times()
-        elif spike_times is not None:
+        elif spike_times is not None: #uses predefined spike times
             self.spike_times = spike_times
 
-        '''
-        #test
-        print("Index :" + str(self.stim_index) + ", Stim Time: " + str(self.stim_time) + ", Baseline Flag : " + str(self.baseline_flag) + ", Num Spikes:" + str(self.spike_times.shape))
-        print(self.spike_times)
-        '''
-
-        #calculate burst and burst properties
+        #calculate bursts and burst properties
         self.bursts = ps_sp.run_poisson_surprise(self.spike_times, surprise_threshold=3.0)
         self.n_bursts, self.burst_firing_rate, self.burst_start_times, self.burst_durations, \
             self.burst_spikes, self.inter_burst_intervals = ps_sp.burst_properties(
@@ -49,15 +47,14 @@ class spike_train:
 
         end_time = start_time + self.time #define end time
 
-        self.spike_times = np.array([t for t in full_times if start_time <= t < end_time]) #list comprehension creates new list with only times in bound
+        self.spike_times = np.array([t for t in full_times if start_time <= t < end_time]) #list comprehension creates new list with only times in bound # type: ignore
         self.spike_times = np.subtract(self.spike_times, start_time) #normalize to start at 0
 
     def evaluate_feature_space(self, feature_list = None):
         self.feature_space = ft_sp.feature_space(self)
-        #load default features if none are given
-        if feature_list is None:
+        if feature_list is None: #load default features if none are given
             self.feature_space.load_default_features()
-        else:
+        else: #load listed features if given
             [self.feature_space.add_feature(ft(self)) for ft in feature_list]
         #evaluate features
         self.feature_space.evaluate_features()

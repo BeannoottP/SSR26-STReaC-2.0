@@ -58,8 +58,6 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     h_neuron_df = analysis.neurons_to_dataframe(healthy_neuron_list)
     #d_neuron_df = analysis.neurons_to_dataframe(diseased_neuron_list)
 
-
-
     h_neuron_df["marker"] = "^"
     #d_neuron_df["marker"] = "o"
     
@@ -80,13 +78,13 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     processed_df["data_dir"] = data_dir_list
     neuron_df = neuron_df.merge(processed_df[["data_dir", "neural_response_val"]], on="data_dir", how="left")
     #{'complete inhibition': 0, 'adapting inhibition': 1, 'partial inhibition': 2, 'no effect': 3, 'excitation': 4, 'biphasic IE': 5, 'biphasic EI': 6}
-    color_list = ["blue", "red", "green", "yellow", "orange", "cyan", "black"]
+    color_list = ["blue", "red", "green", "yellow", "orange", "cyan", "purple"]
     color_map = dict(enumerate(color_list))
 
 
 
     neuron_df["color"] = neuron_df["neural_response_val"].map(color_map)
-    neuron_df.to_csv("example_data/test.csv", index=False)
+
 
     analysis.z_score_difference_cols(neuron_df)
     analysis.z_score_baseline_cols(neuron_df)
@@ -160,13 +158,15 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
 
     ax_elbow = fig.add_subplot(gs[5])
     distortions = analysis.generate_elbow_distortion_vals(neuron_df, regex="^PC_[123].*")
-    ax_elbow.plot(range(1,10), distortions, 'bx-')
+    num_cluster = analysis.find_num_clusters(neuron_df, "^PC_[123].*")
+    ax_elbow.plot(range(1,11), distortions, 'bx-')
+    ax_elbow.axvline(int(num_cluster))
     ax_elbow.set_xlabel('Number of Clusters (k)')
     ax_elbow.set_ylabel('Distortion')
     ax_elbow.set_title('Elbow Graph')
     
     ax_clusters_PC = fig.add_subplot(gs[3], projection="3d")
-    analysis.apply_clusters(neuron_df, 5, regex="^PC_[123].*")
+    analysis.apply_kmeans_clusters(neuron_df, num_clusters=num_cluster, regex="^PC_[123].*")
 
     neuron_df["color"] = neuron_df["cluster"].map(color_map)
     for marker, group in neuron_df.groupby("marker"):
@@ -177,12 +177,13 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
             marker=marker,
             c=group["color"]
         )
-    ax_clusters_PC.set_title("PC Clusters")
+    ax_clusters_PC.set_title("PC KMeans Clusters")
 
     ax_clusters_z_scores = fig.add_subplot(gs[4], projection="3d")
-    analysis.apply_clusters(neuron_df, 5)
+    analysis.apply_dbscan_clusters(neuron_df) #,regex="^PC_[123].*")
 
     neuron_df["color"] = neuron_df["cluster"].map(color_map)
+    neuron_df["color"] = neuron_df["color"].fillna("black")
     for marker, group in neuron_df.groupby("marker"):
         ax_clusters_z_scores.scatter(
             group["PC_1st"],
@@ -191,11 +192,12 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
             marker=marker,
             c=group["color"]
         )
-    ax_clusters_z_scores.set_title("Z Score Clusters")
+    ax_clusters_z_scores.set_title("PC DBSCAN Clusters")
 
 
 
 
     fig.suptitle(title)
-    fig.savefig("figures/{title}".format(title=title))
+    fig.savefig("figures/{title}.pdf".format(title=title))
+    neuron_df.to_csv("example_data/test.csv", index=False)
     return fig

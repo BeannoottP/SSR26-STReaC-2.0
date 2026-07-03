@@ -4,12 +4,14 @@ import re
 from scipy.stats import zscore
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from scipy.spatial.distance import cdist
+from scipy.interpolate import interp1d
 
 def _sanitize_col(name: str) -> str:
 	'''
-	adapted from
+	adapted from geeks4geeks implementation
 	'''
 	name = name.strip().lower()
 	name = re.sub(r"\s+", "_", name)
@@ -61,12 +63,12 @@ def z_score_baseline_cols(neuron_df):
 	col_names = neuron_df.filter(regex=("^baseline_.*")).columns.to_list() #filter column list for only columns labeled diff_
 	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
 	#relabel cols
-	z_score_df.columns = [f"filtering_z_scores_{name}" for name in col_names]
+	z_score_df.columns = [f"filtering_z_score_{name}" for name in col_names]
 	neuron_df[z_score_df.columns] = z_score_df
 
-def remove_extraneous(neuron_df, z_score_threshold = 3.0, regex = "^z_score_.*"):
+def remove_extraneous(neuron_df, z_score_threshold = 3.0, regex = "^filtering_z_score_.*"):
 	'''
-	drops all rows with z_scores outside of z_score_threshold, inplace
+	drops all rows with filtering_z_scores outside of z_score_threshold, inplace
 	'''
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
 	mask = (neuron_df[col_names].abs() <= z_score_threshold).all(axis=1)
@@ -80,25 +82,68 @@ def apply_PCA(neuron_df, num_features, regex = "^z_score_.*"):
 	neuron_df[reduced_names]= reduced
 	return pca
 
-def generate_elbow_distortion_vals(neuron_df, regex = "^z_score_.*"):
+def generate_elbow_distortion_vals(neuron_df, max_clusters = 10, regex = "^z_score_.*"):
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
 	X = neuron_df[col_names]
 	distortions = []
-	K = range(1, 10)
+	K = range(1, max_clusters + 1)
 
 	for k in K:
 		kmeanModel = KMeans(n_clusters=k, random_state=42).fit(X)
 		distortions.append(sum(np.min(cdist(X, kmeanModel.cluster_centers_, 'euclidean'), axis=1)**2) / X.shape[0])
+
 	return distortions
 
-def apply_clusters(neuron_df, num_clusters, regex = "^z_score_.*"):
+def apply_kmeans_clusters(neuron_df, num_clusters, regex = "^z_score_.*"):
 	cluster_cols = neuron_df.filter(regex=regex).columns
 	X = neuron_df[cluster_cols]
 
 	kmeans = KMeans(n_clusters=num_clusters, random_state=42)
 	neuron_df["cluster"] = kmeans.fit_predict(X)
 
-    
+def apply_dbscan_clusters(neuron_df, regex = "^z_score_.*"):
+	cluster_cols = neuron_df.filter(regex=regex).columns
+	X = neuron_df[cluster_cols]
+
+	dbscan = DBSCAN(eps = 0.7, min_samples = 10)
+	neuron_df["cluster"] = dbscan.fit_predict(X)
+
+def find_num_clusters(neuron_df, regex= "^z_score_.*"):
+	'''
+	finds ideal num clusters based on kneedle algorithm in Satop¨a¨a et al as defined in kneedle_alorithm.ipynb
+	'''
+	# get distortions as a NumPy array for vectorized transformation
+	distortion_vals = np.array(generate_elbow_distortion_vals(neuron_df, regex = regex))
+	x = np.arange(1, len(distortion_vals) + 1)
+	
+	# transform the decreasing, convex distortion curve to increasing and concave
+	y = distortion_vals.max() - distortion_vals
+	
+	#creates smoothed distortion_vals as ds_y
+	uspline = interp1d(x, y)
+	ds_y =  np.array(uspline(x))
+	
+	def _normalize(a):
+		"""return the normalized input array"""
+		return (a - min(a)) / (max(a) - min(a))
+	
+	#normalize x and y
+	norm_y = _normalize(ds_y)
+	norm_x = _normalize(x)
+
+	#calulate differnce curve
+	diff_y = norm_y - norm_x
+	diff_x = norm_x
+
+	#find absolute max
+	max_index = np.argmax(diff_y)
+
+	return x[max_index]
+
+
+
+
+
 
 
 	

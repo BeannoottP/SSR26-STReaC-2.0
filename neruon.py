@@ -1,5 +1,16 @@
+"""
+neuron.py
+
+Represents neural spike train data for one neuron stored in lists of baseline and stimulation spike_trains
+Stores feature spaces for: 
+    trial_average_baseline #all baseline spike times averaged
+    averaged_difference #difference between baseline and stimulation spike train features, either compared per trial or by average
+
+Author: Bennett Ptak (2026)
+"""
+
+
 import numpy as np
-import logging
 import spike_train as st
 import feature_space as ft_sp
 import feature as ft
@@ -7,10 +18,10 @@ import feature as ft
 class neuron:
     def __init__(self, data_path, time = 1.0):
         self.src : str = data_path #path to folder containing neural data
-        self.time = time
+        self.time = time #spike train length
         
-        self.spike_times : np.ndarray = np.empty(0) #Full array of spike times
-        self.stimulus_times : np.ndarray = np.empty(0) # full array of stimulus start times
+        self.spike_times : np.ndarray | None = None #Full array of spike times
+        self.stimulus_times : np.ndarray | None = None # full array of stimulus start times
         self.stimulus_count : int = 0 # integer count of number of stimulus
         self.meta_data : dict = {} # dictionary of metadata
 
@@ -27,8 +38,8 @@ class neuron:
             self.baseline_spike_trains[i].evaluate_feature_space()
             self.stimulation_spike_trains[i].evaluate_feature_space()
 
-        self.trial_average_baseline = None
-        self.averaged_difference = None
+        self.trial_average_baseline : ft_sp.feature_space | None = None
+        self.averaged_difference : ft_sp.feature_space | None = None
 
 
 
@@ -38,7 +49,7 @@ class neuron:
             f"{self.src}/spikes.txt", ndmin=1
         )  # Save the spike data
         self.stimulus_times = np.loadtxt(
-            f"{self.src}/light_on.txt", ndmin=1
+            f"{self.src}/light_on.txt", ndmin=1,
         )   # Save the stimulus time data
         self.stimulus_count = self.stimulus_times.shape[
             0
@@ -73,13 +84,15 @@ class neuron:
             self.baseline_spike_trains[i] = st.spike_train(self, i, True, time = self.time)
             self.stimulation_spike_trains[i] = st.spike_train(self, i, False, time = self.time)
 
-        pre_stimulation_spikes = np.array([t for t in self.spike_times if 0.0 <= t < self.stimulus_times[0]])
-        self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times= pre_stimulation_spikes)
+        #generates spike train for time 0 to first stimulus time
+        pre_stimulation_spikes = np.array([t for t in self.spike_times if 0.0 <= t < self.stimulus_times[0]]) # type: ignore
+        self.pre_stimulation_spike_train = st.spike_train(time = self.stimulus_times[0], spike_times = pre_stimulation_spikes) # type: ignore
 
     def generate_trial_average_baseline(self):
         '''
         generates averaged feature space of all baseline spike trains
         '''
+        #
         feature_space_list = [st.feature_space for st in self.baseline_spike_trains]
         self.trial_average_baseline = ft_sp.average_features(feature_space_list)
 

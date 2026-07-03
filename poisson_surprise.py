@@ -40,7 +40,7 @@ def calc_surprise(rate, burst_candidate):
 
 
 def run_poisson_surprise(
-    spike_times, min_spikes=3, max_spikes=10, surprise_threshold=3.0, window=-1
+    spike_times, min_spikes=3, max_spikes=10, surprise_threshold=3.0
 ):
     """
     Detect bursts in spike trains using the Poisson surprise method.
@@ -53,9 +53,7 @@ def run_poisson_surprise(
 
     \t max_spikes=10 (int): Maximum number of spikes in a burst.
 
-    \t surprise_threshold=5 (float): Threshold for the surprise value to consider a burst.
-
-    \t window=-1 (float): Window size in seconds to calculate the background firing rate.
+    \t surprise_threshold=3.0 (float): Threshold for the surprise value to consider a burst.
 
     Returns
     --------
@@ -80,17 +78,6 @@ def run_poisson_surprise(
         # Find current burst candidate
         burst_candidate = spike_times[spike_i : spike_i + min_spikes]
 
-        # Reference rate defined as the rate in the window before the burst candidate
-        '''    
-        if window != -1:
-            window = 2 * np.max(isi)
-            window_spikes = spike_times[
-                ((spike_times) >= spike_times[spike_i] - window)
-                & (((spike_times) < spike_times[spike_i]))
-            ]
-            rate = window_spikes.shape[0] / window if spike_i > min_spikes else rate
-        '''
-        
         # Check if burst candidate meets firing rate criteria
         if np.max(np.diff(burst_candidate)) <= 0.5 * np.mean(isi):
 
@@ -152,7 +139,7 @@ def burst_properties(bursts):
 
     # Initialize variables
     n_bursts = len(bursts)
-    burst_firing_rate = np.zeros(n_bursts)  #
+    burst_firing_rate = np.zeros(n_bursts) 
     burst_start_times = np.zeros(n_bursts)
     burst_durations = np.zeros(n_bursts)
     burst_spikes = np.zeros(n_bursts)
