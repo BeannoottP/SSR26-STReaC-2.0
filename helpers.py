@@ -180,7 +180,8 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     ax_clusters_PC.set_title("PC KMeans Clusters")
 
     ax_clusters_z_scores = fig.add_subplot(gs[4], projection="3d")
-    analysis.apply_dbscan_clusters(neuron_df) #,regex="^PC_[123].*")
+    eps, min_samples = analysis.find_db_scan_params(neuron_df)
+    analysis.apply_dbscan_clusters(neuron_df, eps = eps, min_samples= min_samples) #,regex="^PC_[123].*")
 
     neuron_df["color"] = neuron_df["cluster"].map(color_map)
     neuron_df["color"] = neuron_df["color"].fillna("black")
@@ -192,12 +193,11 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
             marker=marker,
             c=group["color"]
         )
-    ax_clusters_z_scores.set_title("PC DBSCAN Clusters")
+    ax_clusters_z_scores.set_title(f"PC DBSCAN Clusters on Z Scores, eps: {eps}")
 
-
-
+    analysis.generate_cluster_differences(neuron_df, 0)
 
     fig.suptitle(title)
-    fig.savefig("figures/{title}.pdf".format(title=title))
+    fig.savefig("figures/{title}.png".format(title=title))
     neuron_df.to_csv("example_data/test.csv", index=False)
     return fig

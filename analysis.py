@@ -8,6 +8,8 @@ from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from scipy.spatial.distance import cdist
 from scipy.interpolate import interp1d
+from sklearn.neighbors import NearestNeighbors
+from matplotlib import pyplot as plt
 
 def _sanitize_col(name: str) -> str:
 	'''
@@ -101,11 +103,11 @@ def apply_kmeans_clusters(neuron_df, num_clusters, regex = "^z_score_.*"):
 	kmeans = KMeans(n_clusters=num_clusters, random_state=42)
 	neuron_df["cluster"] = kmeans.fit_predict(X)
 
-def apply_dbscan_clusters(neuron_df, regex = "^z_score_.*"):
+def apply_dbscan_clusters(neuron_df, regex = "^z_score_.*", eps = 0.7, min_samples = 10):
 	cluster_cols = neuron_df.filter(regex=regex).columns
 	X = neuron_df[cluster_cols]
 
-	dbscan = DBSCAN(eps = 0.7, min_samples = 10)
+	dbscan = DBSCAN(eps = eps, min_samples = min_samples)
 	neuron_df["cluster"] = dbscan.fit_predict(X)
 
 def find_num_clusters(neuron_df, regex= "^z_score_.*"):
@@ -139,6 +141,79 @@ def find_num_clusters(neuron_df, regex= "^z_score_.*"):
 	max_index = np.argmax(diff_y)
 
 	return x[max_index]
+
+def find_db_scan_params(neuron_df, regex = "^z_score_.*"):
+	'''
+	returns eps, min_samples
+	based on https://stataiml.com/posts/how_to_set_dbscan_paramter/
+	and https://www.reneshbedre.com/blog/dbscan-python.html
+
+	'''
+	cluster_cols = neuron_df.filter(regex=regex).columns
+	X =  neuron_df[cluster_cols]
+	num_cols = X.shape[1]
+	num_rows = len(X)
+
+	#always allow for minimum of 4 clusters
+	min_samples = min(num_cols * 2, int(num_rows / 4))
+
+	#finding elbow in num neighbors graph
+	#get nearest neighbor vals
+	nearestNeighbors = NearestNeighbors(n_neighbors=min_samples+1).fit(X)
+	dist, _ = nearestNeighbors.kneighbors(X)
+
+	dist = dist[: ,-1]
+	dist = np.sort(dist)
+
+	#now reapply kneedle
+	y = dist
+	x = np.arange(0, len(dist))
+	
+	#smooth
+	uspline = interp1d(x, y)
+	ds_y =  np.array(uspline(x))
+
+	#normalize
+	def _normalize(a):
+		"""return the normalized input array"""
+		return (a - min(a)) / (max(a) - min(a))
+	
+	norm_y = _normalize(ds_y)
+	norm_x = _normalize(x)
+
+	#calulate differnce curve
+	diff_y = norm_y - norm_x
+	diff_x = norm_x
+
+	#calculate eps
+	max_index = np.argmax(diff_y)
+	eps = dist[max_index]
+
+	return eps, min_samples
+
+
+def generate_cluster_differences(neuron_df, cluster_num):
+	'''
+	Return a two-column DataFrame for all z_score_diff feature averages and
+	cluster-specific averages for the given cluster number.
+	'''
+	if "cluster" not in neuron_df.columns:
+		raise ValueError("DataFrame must contain a 'cluster' column")
+
+	col_names = neuron_df.filter(regex=r"^z_score_diff_.*").columns.to_list()
+	if not col_names:
+		return pd.DataFrame(columns=["all_average", "cluster_average"])
+
+	all_mean = neuron_df[col_names].mean(axis=0)
+	cluster_mask = neuron_df["cluster"] == cluster_num
+	cluster_mean = neuron_df.loc[cluster_mask, col_names].mean(axis=0)
+
+	result = pd.DataFrame({
+		"all_average": all_mean,
+		"cluster_average": cluster_mean,
+	})
+	print(result.head)
+	return result
 
 
 
