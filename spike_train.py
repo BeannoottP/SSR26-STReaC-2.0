@@ -50,13 +50,9 @@ class spike_train:
         self.spike_times = np.array([t for t in full_times if start_time <= t < end_time]) #list comprehension creates new list with only times in bound # type: ignore
         self.spike_times = np.subtract(self.spike_times, start_time) #normalize to start at 0
 
-    def evaluate_feature_space(self, feature_list = None):
-        self.feature_space = ft_sp.feature_space(self)
-        if feature_list is None: #load default features if none are given
-            self.feature_space.load_default_features()
-        else: #load listed features if given
-            [self.feature_space.add_feature(ft(self)) for ft in feature_list]
-        #evaluate features
+    def evaluate_feature_space(self, template_space = None):
+        self.feature_space = ft_sp.feature_space(self, template_space)
+
         self.feature_space.evaluate_features()
 
     def get_feature(self, feature):

@@ -4,24 +4,32 @@ import numpy as np
 
 class feature_space:
     
-    def __init__(self, spike_train = None, feature_space = None):
+    def __init__(self, spike_train = None, feature_space = None, feature_list = None):
         '''
         Overloaded:
         __init__(self, spike_train): Creates a feature space to be evaluated with the data in spike_train, defaults to no features
         __init__(self, feature_space): Creates a feature space to be manually set, with features in shape of passed feature space
         '''
         self.feature_list = []
+        self.spike_train = None
         if spike_train != None:
             self.spike_train = spike_train
         if feature_space != None:
             for feature in feature_space.feature_list:
                 ft_type = type(feature)
-                self.feature_list.append(ft_type(None))
+                self.feature_list.append(ft_type(self.spike_train))
+        if feature_list != None:
+            for feature in feature_list:
+                self.feature_list.append(feature(self.spike_train))
+
+        if feature_list is None and feature_space is None:
+            self.load_default_features()
+
 
 
     def add_feature(self, feature):
         '''
-        adds a feature of 
+        adds a feature to feature list
         '''
         self.feature_list.append(feature)
 

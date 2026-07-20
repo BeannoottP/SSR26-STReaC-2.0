@@ -16,7 +16,7 @@ import feature_space as ft_sp
 import feature as ft
 
 class neuron:
-    def __init__(self, data_path, time = 1.0):
+    def __init__(self, data_path, time = 1.0, feature_list = None):
         self.src : str = data_path #path to folder containing neural data
         self.time = time #spike train length
         
@@ -29,6 +29,8 @@ class neuron:
         
         self.baseline_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
         self.stimulation_spike_trains : np.ndarray = np.empty(self.stimulus_count, dtype=st.spike_train)
+
+        self.template_space = ft_sp.feature_space(feature_list = feature_list)
 
         self.generate_spike_trains()
 

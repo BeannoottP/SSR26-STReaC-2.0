@@ -29,7 +29,7 @@ def subfolders_from_folder(root):
     return matches
 
 
-def load_neurons_from_path(data_path):
+def load_neurons_from_path(data_path, feature_list = None):
     '''
     Returns all neuron data in data_path folder in list of neurons
     '''
@@ -38,7 +38,7 @@ def load_neurons_from_path(data_path):
     neurons = []
     #iterates neuron paths and creates a neruon instance for each
     for path in neuron_paths:
-        neurons.append(nrn.neuron(path))
+        neurons.append(nrn.neuron(path, feature_list = feature_list))
     #logs for sanity
     print(str(len(neurons)) + " neurons loaded from " + data_path)
     return neurons

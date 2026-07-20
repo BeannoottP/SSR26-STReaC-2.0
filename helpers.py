@@ -86,7 +86,7 @@ def plot_pca(healthy_neuron_list, diseased_neuron_list, difference_method, z_sco
     neuron_df["color"] = neuron_df["neural_response_val"].map(color_map)
 
 
-    analysis.z_score_difference_cols(neuron_df)
+    analysis.z_score(neuron_df)
     analysis.z_score_baseline_cols(neuron_df)
     analysis.remove_extraneous(neuron_df, regex = "^filtering_.*")
 

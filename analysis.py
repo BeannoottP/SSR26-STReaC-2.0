@@ -54,7 +54,7 @@ def neurons_to_dataframe(neuron_list):
 	return df
 
 
-def z_score_difference_cols(neuron_df):
+def z_score(neuron_df, regex = "^diff_.*"):
 	col_names = neuron_df.filter(regex=("^diff_.*")).columns.to_list() #filter column list for only columns labeled diff_
 	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
 	#relabel cols
