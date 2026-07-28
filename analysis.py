@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
-from scipy.stats import zscore
+import scipy
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
@@ -10,6 +10,15 @@ from scipy.spatial.distance import cdist
 from scipy.interpolate import interp1d
 from sklearn.neighbors import NearestNeighbors
 from matplotlib import pyplot as plt
+
+def zscore(values, mean=None, std=None):
+	x = np.asarray(values, dtype=float)
+	if mean is None:
+		mean = np.nanmean(x, axis=0)
+	if std is None:
+		std = np.nanstd(x, axis=0)
+	std = np.where(std == 0, 1.0, std)
+	return (x - mean) / std, mean, std
 
 def _sanitize_col(name: str) -> str:
 	'''
@@ -54,16 +63,19 @@ def neurons_to_dataframe(neuron_list):
 	return df
 
 
-def z_score(neuron_df, regex = "^diff_.*"):
+def z_score(neuron_df, regex = "^diff_.*", mean=None, std=None):
 	col_names = neuron_df.filter(regex=("^diff_.*")).columns.to_list() #filter column list for only columns labeled diff_
-	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
+	transformed, mean, std = zscore(neuron_df[col_names], mean=mean, std=std)
+	z_score_df = pd.DataFrame(transformed, columns=col_names, index=neuron_df.index)
 	#relabel cols
 	z_score_df.columns = [f"z_score_{name}" for name in col_names]
 	neuron_df[z_score_df.columns] = z_score_df
-	
-def z_score_baseline_cols(neuron_df):
+	return mean, std
+
+
+def z_score_baseline_cols(neuron_df, mean=None, std=None):
 	col_names = neuron_df.filter(regex=("^baseline_.*")).columns.to_list() #filter column list for only columns labeled diff_
-	z_score_df = neuron_df[col_names].apply(zscore) #mask only cols and apply zscore
+	z_score_df = neuron_df[col_names].apply(scipy.stats.zscore) #mask only cols and apply zscore
 	#relabel cols
 	z_score_df.columns = [f"filtering_z_score_{name}" for name in col_names]
 	neuron_df[z_score_df.columns] = z_score_df
@@ -76,11 +88,16 @@ def remove_extraneous(neuron_df, z_score_threshold = 3.0, regex = "^filtering_z_
 	mask = (neuron_df[col_names].abs() <= z_score_threshold).all(axis=1)
 	neuron_df.drop(index = neuron_df.index[~mask], inplace = True)
 	
-def apply_PCA(neuron_df, num_features, regex = "^z_score_.*"):
+def apply_PCA(neuron_df, num_features = 10, regex = "^z_score_.*", model=None):
 	col_names = neuron_df.filter(regex = (regex)).columns.to_list()
-	pca = PCA(n_components=num_features)
-	reduced = pca.fit_transform(neuron_df[col_names])
-	reduced_names = ["PC_1st", "PC_2nd", "PC_3rd", "PC_4th", "PC_5th", "PC_6th", "PC_7th", "PC_8th", "PC_9th", "PC_10th"]
+	if model is None:
+		pca = PCA(n_components=num_features)
+		pca.fit(neuron_df[col_names])
+	else:
+		pca = model
+
+	reduced = pca.transform(neuron_df[col_names])
+	reduced_names = ["PC_0", "PC_1", "PC_2", "PC_3", "PC_4", "PC_5", "PC_6", "PC_7", "PC_8", "PC_9"]
 	neuron_df[reduced_names]= reduced
 	return pca
 
@@ -96,12 +113,19 @@ def generate_elbow_distortion_vals(neuron_df, max_clusters = 10, regex = "^z_sco
 
 	return distortions
 
-def apply_kmeans_clusters(neuron_df, num_clusters, regex = "^z_score_.*"):
+def apply_kmeans_clusters(neuron_df, num_clusters, regex = "^z_score_.*", model=None):
 	cluster_cols = neuron_df.filter(regex=regex).columns
 	X = neuron_df[cluster_cols]
 
-	kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-	neuron_df["cluster"] = kmeans.fit_predict(X)
+	if model is None:
+		kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+		kmeans.fit(X)
+	else:
+		kmeans = model
+
+	neuron_df["cluster"] = kmeans.predict(X)
+
+	return kmeans
 
 def apply_dbscan_clusters(neuron_df, regex = "^z_score_.*", eps = 0.7, min_samples = 10):
 	cluster_cols = neuron_df.filter(regex=regex).columns
@@ -221,4 +245,4 @@ def generate_cluster_differences(neuron_df, cluster_num):
 
 
 
-	
+

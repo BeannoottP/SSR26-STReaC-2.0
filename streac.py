@@ -1,10 +1,12 @@
 #imports
 import argparse
 import inspect
+import numpy as np
 import analysis
 import file_system as fs
 import difference_methods as dm
 import feature as ft
+import pandas as pd
 
 #############################################
 #PARSE ARGS
@@ -20,7 +22,7 @@ parser.add_argument(
     type=str,
     nargs="+",
     required=False,
-    help="List of data paths to "
+    help="List of data paths to buckets"
 )
 parser.add_argument(
     "--difference-method",
@@ -150,23 +152,87 @@ training_df = analysis.neurons_to_dataframe(training_bucket_neurons)
 training_df["bucket_path"] = main_data_path
 
 #apply z scores and filtering
-analysis.z_score(training_df, regex = "^diff_.*")
-#TODO !!! Filtering based off baseline or diff -- ASK JOHN
-analysis.remove_extraneous(training_df, regex = "^z_score_diff_*", )
+mean, std = analysis.z_score(training_df, regex = "^diff_.*")
 
-#apply PCA
+analysis.z_score_baseline_cols(training_df)
+#TODO Custom thresholds
+analysis.remove_extraneous(training_df, regex = "^filtering_z_score_.*")
 
-#apply k-means
+#apply PCA and k_means
+if use_pca:
+    pca_model = analysis.apply_PCA(training_df)
+    used_pc_vals = 0
+    pc_sums = np.cumsum(pca_model.explained_variance_ratio_)
+    for i in range(len(pc_sums)):
+        used_pc_vals = i
+        if pc_sums[used_pc_vals] >= pca_threshold:
+            break
+    
+    num_clusters = analysis.find_num_clusters(training_df, regex=f"^PC_[0-{used_pc_vals}].*")
+    k_means = analysis.apply_kmeans_clusters(training_df, num_clusters=num_clusters, regex=f"^PC_[0-{used_pc_vals}].*")
+
+else: #apply to z_scores
+    num_clusters = analysis.find_num_clusters(training_df)
+    k_means = analysis.apply_kmeans_clusters(training_df, num_clusters)
+
+
+
+
 
 
 ######################################
 #OTHER BUCKET ANALYSIS
 ######################################
+bucket_dfs = []
+for bucket_data in bucket_data_paths:
+    if custom_features:
+        bucket_neurons = fs.load_neurons_from_path(bucket_data, feature_list)
+    else: 
+        bucket_neurons = fs.load_neurons_from_path(bucket_data)
+
+    #generate feature spaces
+    for neuron in bucket_neurons:
+        neuron.generate_trial_average_baseline()
+        if  not trial_average:
+            neuron.generate_per_trial_difference(difference_method)
+        else:
+            neuron.generate_trial_average_difference(difference_method)
+
+    #generate dataframe
+    bucket_df = analysis.neurons_to_dataframe(bucket_neurons)
+    bucket_df["bucket_path"] = bucket_data
+
+    #apply z scores and filtering
+    analysis.z_score(bucket_df, regex = "^diff_.*", mean=mean, std= std)
+
+    analysis.z_score_baseline_cols(bucket_df)
+    #TODO Custom thresholds
+    analysis.remove_extraneous(bucket_df, regex = "^filtering_z_score_.*")
+
+
+    #apply PCA and k_means
+    if use_pca:
+        analysis.apply_PCA(bucket_df, model = pca_model)
+        analysis.apply_kmeans_clusters(bucket_df, num_clusters=num_clusters, regex=f"^PC_[0-{used_pc_vals}].*", model = k_means)
+
+    else: #apply to z_scores
+        analysis.apply_kmeans_clusters(bucket_df, num_clusters, model = k_means)
+
+    #add to df collection
+    bucket_dfs.append(bucket_df)
 
 
 
 ######################################
 #FINAL DATAFRAME PROCESSING
 ######################################
+all_dfs = [training_df]
+all_dfs.extend(bucket_dfs)
+
+final_df = pd.concat(all_dfs)
 
 #save anything neccessary to save
+final_df.to_csv("example_data/final.csv", index = False)
+training_df.to_csv("example_data/training.csv", index = False)
+for i in range(len(bucket_dfs)):
+    bucket_dfs[i].to_csv(f"example_data/bucket_{i}.csv", index = False)
